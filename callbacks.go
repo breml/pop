@@ -2,8 +2,6 @@ package pop
 
 import (
 	"reflect"
-
-	"golang.org/x/sync/errgroup"
 )
 
 // AfterFindable callback will be called after a record, or records,
@@ -43,26 +41,31 @@ func (m *Model) afterFind(c *Connection, eager bool) error {
 		return nil
 	}
 
-	wg := &errgroup.Group{}
 	for i := 0; i < rv.Len(); i++ {
 		elem := rv.Index(i).Addr()
 
 		if eager {
-			if x, ok := elem.Interface().(AfterEagerFindable); ok {
-				wg.Go(func() error {
-					return x.AfterEagerFind(c)
-				})
+			x, ok := elem.Interface().(AfterEagerFindable)
+			if !ok {
+				continue
+			}
+			err := x.AfterEagerFind(c)
+			if err != nil {
+				return err
 			}
 		} else {
-			if x, ok := elem.Interface().(AfterFindable); ok {
-				wg.Go(func() error {
-					return x.AfterFind(c)
-				})
+			x, ok := elem.Interface().(AfterFindable)
+			if !ok {
+				continue
+			}
+			err := x.AfterFind(c)
+			if err != nil {
+				return err
 			}
 		}
 	}
 
-	return wg.Wait()
+	return nil
 }
 
 // BeforeSaveable callback will be called before a record is
