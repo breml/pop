@@ -42,13 +42,17 @@ func ForStructWithAlias(s interface{}, tableName, tableAlias, idField string) (c
 		for i := 0; i < fc; i++ {
 			field := t.Field(i)
 
+			popTags := TagsFor(field)
+			tag := popTags.Find("db")
+
+			if tag.Ignored() {
+				continue
+			}
+
 			if field.Anonymous {
 				findColumns(field.Type)
 				continue
 			}
-
-			popTags := TagsFor(field)
-			tag := popTags.Find("db")
 
 			if !tag.Ignored() && !tag.Empty() {
 				col := tag.Value
